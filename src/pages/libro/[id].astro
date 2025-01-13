@@ -6,6 +6,15 @@ import AmazonLogo from "../../components/AmazonLogo.astro";
 import BookScore from "../../components/BookScore.astro";
 import BuyButton from "../../components/BuyButton.astro";
 
+export async function getStaticPaths() {
+  const books = await getCollection("books");
+
+  return books.map((book) => ({
+    params: { id: book.slug },
+    props: { book },
+  }));
+}
+
 const { book } = Astro.props;
 const { data, slug } = book;
 const { title, author, img, readtime, description, buy } = data;
