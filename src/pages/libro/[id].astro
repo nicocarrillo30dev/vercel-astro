@@ -1,64 +1,56 @@
 ---
-// [slug].astro
-
+import { getCollection, render } from "astro:content";
+import { SHOW_BUY_BUTTON } from "astro:env/server";
 import Layout from "../../layouts/Layout.astro";
 import AmazonLogo from "../../components/AmazonLogo.astro";
+import BookScore from "../../components/BookScore.astro";
 import BuyButton from "../../components/BuyButton.astro";
 
-// Define la URL de la API
-const API_URL = "https://admin.nicolascarrillo.com/api/courses";
-
-// Función para obtener todos los cursos
 export async function getStaticPaths() {
-  const response = await fetch(API_URL);
-  const data = await response.json();
-  const courses = data.docs;
+  const books = await getCollection("books");
 
-  return courses.map((course: any) => ({
-    params: { slug: course.slug },
-    props: { course },
+  return books.map((book) => ({
+    params: { id: book.slug },
+    props: { book },
   }));
 }
 
-// Recupera el curso desde las props
-const { course } = Astro.props;
-const {
-  id,
-  title,
-  slug,
-  estado,
-  descripcionCurso,
-  precio,
-  coverImage,
-  recetas,
-} = course;
+const { book } = Astro.props;
+const { data, slug } = book;
+const { title, author, img, readtime, description, buy } = data;
 
-// Renderiza el contenido adicional si es necesario
-// (Puedes agregar más lógica aquí según tus necesidades)
+const { Content } = await render(book);
 
 export const prerender = true;
 ---
 
-<Layout title={`${title} - Cursos de Cocina`}>
-  <div class="flex flex-col lg:flex-row gap-12">
-    <aside class="flex flex-col items-center gap-6">
+<Layout title={`${title} - Dev Books`}>
+  <div class="flex gap-12">
+    <aside class="flex flex-col items-center gap-4">
       <a href="/" class="hover:underline opacity-70">← Volver atrás</a>
-      <img class="rounded w-72 h-auto" alt={`Portada de ${title}`} />
+      <img
+        transition:name={`img-${slug}`}
+        class="rounded w-72 h-auto"
+        src={`/${img}`}
+        alt={title}
+      />
 
-      <div class="text-center">
-        <span class="text-lg font-semibold">Precio: ${precio}€</span>
-      </div>
+      <BookScore server:defer id={slug}>
+        <span slot="fallback" class="text-xs opacity-70"
+          >Cargando puntuación...</span
+        >
+      </BookScore>
 
-      <BuyButton id={id} precio={precio} />
+      {SHOW_BUY_BUTTON && <BuyButton server:defer buy={buy} />}
     </aside>
 
     <main class="max-w-3xl">
-      <h1 class="text-4xl font-bold mb-4">{title}</h1>
-      <p class="mb-6">
-        {descripcionCurso || "Descripción del curso no disponible."}
-      </p>
-
-      <h2 class="text-2xl font-semibold mb-2">Recetas Incluidas:</h2>
+      <h1 transition:name={`title-${slug}`} class="text-4xl font-bold mb-4">
+        {title}
+      </h1>
+      <div class="prose prose-invert">
+        <Content />
+      </div>
     </main>
   </div>
 </Layout>

@@ -1,31 +1,24 @@
 ---
-// components/BuyButton.astro
-
 import AmazonLogo from "./AmazonLogo.astro";
 
 const SPAIN = "ES";
 
-// Obtener el país del usuario desde los headers
 const country = Astro.request.headers.get("X-Vercel-IP-Country") ?? "ES";
 
-// Determinar el país de la tienda y el nombre del país
 const storeCountry = country === SPAIN ? "spain" : "usa";
 const countryName = country === SPAIN ? "España" : "Estados Unidos";
 
-// Obtener las props
-const { id, precio } = Astro.props;
-
-// Construir la URL de compra basada en el ID y el país
-const url = `https://amazon.${storeCountry}/dp/${id}`; // Ajusta esta URL según tu lógica de backend
+const { buy } = Astro.props;
+const url = buy[storeCountry];
 ---
 
 <a
   href={url}
-  title="Comprar curso"
+  title="Comprar libro"
   target="_blank"
   rel="noopener noreferrer"
-  class="inline-flex gap-2 items-center bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg border border-yellow-500 transition duration-200 ease-in-out hover:scale-105 justify-center text-center"
+  class="text-balance inline-flex gap-2 items-center bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg border border-yellow-500 transition duration-200 ease-in-out hover:scale-105 justify-center text-center"
 >
-  Comprar por {precio}€ en Amazon {countryName}
+  Comprar en Amazon {countryName}
   <AmazonLogo />
 </a>
