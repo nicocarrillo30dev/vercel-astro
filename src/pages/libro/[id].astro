@@ -1,17 +1,10 @@
 ---
-// [id].astro
-
-// IMPORTACIONES
-// -------------
 import { SHOW_BUY_BUTTON } from "astro:env/server";
 import Layout from "../../layouts/Layout.astro";
 import AmazonLogo from "../../components/AmazonLogo.astro";
 import BookScore from "../../components/BookScore.astro";
 import BuyButton from "../../components/BuyButton.astro";
 
-// TIPOS DE DATOS
-// --------------
-// Ejemplo de cómo podrías tipar la respuesta de la API. Ajusta según necesites.
 interface APIResponse {
   docs: CursoAPI[];
 }
@@ -90,15 +83,6 @@ export async function getStaticPaths() {
 const { book } = Astro.props as { book: Book };
 const { data, slug } = book;
 const { title, author, img, readtime, description, buy } = data;
-
-// En tu ejemplo original, se usaba `render(book)` para extraer el contenido
-// de un MD/MDX local. Si ya no tienes un MD/MDX y todo viene de la API,
-// puedes quitar esta parte. De lo contrario, ajusta para tu caso real:
-//
-// import { render } from "astro:content";
-// const { Content } = await render(book);
-//
-// y luego en el HTML: <Content />
 
 export const prerender = true;
 ---
