@@ -1,10 +1,9 @@
-// src/types/Curso.ts (o donde prefieras)
-
 export interface CoverImage {
   id: number;
   url: string;
   filename: string;
   Alt?: string | null;
+  // ... otros campos que necesites
 }
 
 export interface ImagenAdicional {
@@ -16,10 +15,10 @@ export interface Curso {
   id: number;
   title: string;
   slug: string;
-  coverImage?: CoverImage;
-  imagenesAdicionales?: ImagenAdicional[];
+  coverImage?: CoverImage; // puede venir o no
+  imagenesAdicionales?: ImagenAdicional[]; // array de imágenes
   descripcionCurso?: string | null;
-  // ... otros campos que necesites
+  // ... más campos si los requieres (precio, etc.)
 }
 
 export interface APICursos {

@@ -1,0 +1,40 @@
+---
+import type { APICursos, Curso } from "../utils/curso";
+
+export async function getStaticProps() {
+  // Llamada a la API
+  const res = await fetch("https://admin.nicolascarrillo.com/api/cursos");
+  const data = (await res.json()) as APICursos;
+
+  return {
+    props: {
+      data, // data.docs => array de Curso
+    },
+  };
+}
+
+// Extraemos las props tipadas
+const { data } = Astro.props as { data: APICursos };
+const cursos = data.docs;
+---
+
+<html>
+  <head>
+    <title>Listado de Cursos</title>
+  </head>
+  <body>
+    <h1>Lista de cursos</h1>
+    <ul>
+      {cursos.map((curso) => (
+        <li>
+          <!--
+            Enlace a /cursos/[slug], usando el slug del curso
+          -->
+          <a href={`/cursos/${curso.slug}`}>
+            {curso.title}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </body>
+</html>
