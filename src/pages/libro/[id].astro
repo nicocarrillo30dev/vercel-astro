@@ -1,88 +1,142 @@
 ---
-import type { Curso, APICursos } from "../../utils/curso"; // <-- tu ruta real
+// [id].astro
 
-// Ejemplo de tipo para el array que retorna getStaticPaths
-interface StaticPath {
-  params: { id: string };
-  props: { curso: Curso };
+// IMPORTACIONES
+// -------------
+import { SHOW_BUY_BUTTON } from "astro:env/server";
+import Layout from "../../layouts/Layout.astro";
+import AmazonLogo from "../../components/AmazonLogo.astro";
+import BookScore from "../../components/BookScore.astro";
+import BuyButton from "../../components/BuyButton.astro";
+
+// TIPOS DE DATOS
+// --------------
+// Ejemplo de cómo podrías tipar la respuesta de la API. Ajusta según necesites.
+interface APIResponse {
+  docs: CursoAPI[];
 }
 
-// getStaticPaths: genera las rutas estáticas
-export async function getStaticPaths(): Promise<StaticPath[]> {
+interface CoverImage {
+  url: string;
+  // ...cualquier otro campo que te interese
+}
+
+export interface CursoAPI {
+  id: number;
+  slug: string;
+  title: string;
+  descripcionCurso?: string;
+  precio?: number;
+  coverImage?: CoverImage;
+  // ...cualquier otro campo que te interese
+}
+
+// El "Book" que el layout espera.
+export interface BookData {
+  title: string;
+  author: string;
+  img: string;
+  readtime: number;
+  description: string;
+  buy: number;
+}
+
+export interface Book {
+  slug: string;
+  data: BookData;
+}
+
+// OBTENCIÓN DE PATHS / PROPS
+// --------------------------
+export async function getStaticPaths() {
+  // 1) Realizamos el fetch a la API
   const res = await fetch("https://admin.nicolascarrillo.com/api/cursos");
-  const data = (await res.json()) as APICursos;
+  if (!res.ok) {
+    throw new Error(`Error al obtener los cursos: ${res.statusText}`);
+  }
 
-  // data.docs es un array de Curso[]
-  return data.docs.map((curso) => ({
-    params: { id: curso.slug },
-    props: { curso },
-  }));
+  // 2) Parseamos la data (según la forma que devuelva la API)
+  const data = (await res.json()) as APIResponse;
+
+  // 3) Mapeamos cada curso del array `docs` a las rutas que Astro necesita
+  return data.docs.map((curso) => {
+    // Adaptamos la forma del "curso" al "book" que usa este componente
+    const book: Book = {
+      slug: curso.slug,
+      data: {
+        title: curso.title,
+        // Como no tenemos 'author' en la API de ejemplo, ponemos un valor genérico
+        author: "Autor desconocido",
+        // Con coverImage.url cubrimos el rol de 'img'
+        img: curso.coverImage?.url ?? "placeholder.webp",
+        // Ejemplo de un readtime genérico
+        readtime: 5,
+        // descripción
+        description: curso.descripcionCurso ?? "Sin descripción",
+        // buy podría ser el precio del curso
+        buy: curso.precio ?? 0,
+      },
+    };
+
+    return {
+      params: { id: curso.slug },
+      props: { book },
+    };
+  });
 }
 
-// Definimos los tipos de los parámetros y retorno de getStaticProps
-interface StaticPropsParams {
-  params: { id: string };
-  props: { curso: Curso };
-}
+// PROPS ENTRANTES
+// ---------------
+const { book } = Astro.props as { book: Book };
+const { data, slug } = book;
+const { title, author, img, readtime, description, buy } = data;
 
-export async function getStaticProps({
-  params,
-  props,
-}: StaticPropsParams): Promise<{ props: { curso: Curso } }> {
-  // Si necesitas hacer otra llamada fetch, hazla aquí.
-  // Si no, solo retornas lo que ya obtuviste en getStaticPaths:
-  return {
-    props: {
-      curso: props.curso,
-    },
-  };
-}
+// En tu ejemplo original, se usaba `render(book)` para extraer el contenido
+// de un MD/MDX local. Si ya no tienes un MD/MDX y todo viene de la API,
+// puedes quitar esta parte. De lo contrario, ajusta para tu caso real:
+//
+// import { render } from "astro:content";
+// const { Content } = await render(book);
+//
+// y luego en el HTML: <Content />
 
-// Obtenemos las props tipadas
-const { curso } = Astro.props as { curso: Curso };
-
-// Desestructuramos
-const { title, coverImage, imagenesAdicionales, descripcionCurso } = curso;
+export const prerender = true;
 ---
 
-<!----------------------------------------------->
-<template>
-  <h1>{title}</h1>
+<Layout title={`${title} - Dev Books`}>
+  <div class="flex gap-12">
+    <aside class="flex flex-col items-center gap-4">
+      <a href="/" class="hover:underline opacity-70">← Volver atrás</a>
 
-  <!-- Ejemplo de imagen de portada -->
-  {
-    coverImage && (
+      <!-- Imagen del curso/libro -->
       <img
-        src={coverImage.url}
-        alt={coverImage.filename}
-        style="max-width: 200px;"
+        transition:name={`img-${slug}`}
+        class="rounded w-72 h-auto"
+        src={img}
+        alt={title}
       />
-    )
-  }
 
-  <!-- Ejemplo de descripción -->
-  {descripcionCurso && <p>{descripcionCurso}</p>}
+      <!-- Componente que carga puntuación (ejemplo) -->
+      <BookScore server:defer id={slug}>
+        <span slot="fallback" class="text-xs opacity-70"
+          >Cargando puntuación...</span
+        >
+      </BookScore>
 
-  <!-- Ejemplo de imágenes adicionales -->
-  {
-    imagenesAdicionales && imagenesAdicionales.length > 0 && (
-      <section>
-        {imagenesAdicionales.map((item) => {
-          // TypeScript ya sabrá que item es de tipo ImagenAdicional
-          const { id, imagen } = item;
-          return (
-            // Nota: en Astro HTML nativo, 'key' no existe como en React,
-            //       puedes usar un contenedor o data-attribute.
-            <div data-key={id}>
-              <img
-                src={imagen.url}
-                alt={imagen.filename}
-                style="max-width: 150px;"
-              />
-            </div>
-          );
-        })}
-      </section>
-    )
-  }
-</template>
+      {SHOW_BUY_BUTTON && <BuyButton server:defer buy={buy} />}
+    </aside>
+
+    <main class="max-w-3xl">
+      <h1 transition:name={`title-${slug}`} class="text-4xl font-bold mb-4">
+        {title}
+      </h1>
+      <p class="text-sm opacity-80">Autor: {author}</p>
+      <p class="text-sm opacity-80 mb-4">Tiempo de lectura: {readtime} min</p>
+
+      <!-- Aquí podrías renderizar la descripción, o el Content si existiese -->
+      <div class="prose prose-invert">
+        {description}
+      </div>
+    </main>
+  </div>
+</Layout>
