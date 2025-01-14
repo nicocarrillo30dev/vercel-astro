@@ -1,4 +1,6 @@
 ---
+// src/pages/libro/[id].astro
+
 import { SHOW_BUY_BUTTON } from "astro:env/server";
 import Layout from "../../layouts/Layout.astro";
 import AmazonLogo from "../../components/AmazonLogo.astro";
@@ -14,8 +16,8 @@ interface CoverImage {
 }
 
 export interface CursoAPI {
-  id: number;
-  slug: string;
+  id: number;               // ← el ID numérico
+  slug: string;            // ← aquí podrías guardarlo como referencia si gustas
   title: string;
   descripcionCurso?: string;
   precio?: number;
@@ -28,44 +30,45 @@ export interface BookData {
   img: string;
   readtime: number;
   description: string;
-  buy: number; // <= aquí guardamos un precio "inicial" o lo que quieras
+  buy: number;  // = precio
 }
 
 export interface Book {
-  slug: string;
+  id: string;    // ← guardaremos aquí el ID como string
   data: BookData;
 }
 
 export async function getStaticPaths() {
+  // 1) Realizamos el fetch a la API principal (lista de cursos)
   const res = await fetch("https://admin.nicolascarrillo.com/api/cursos");
   if (!res.ok) {
     throw new Error(`Error al obtener los cursos: ${res.statusText}`);
   }
-
   const data = (await res.json()) as APIResponse;
 
+  // 2) Mapeamos cada curso, retornando el ID como string
   return data.docs.map((curso) => {
     const book: Book = {
-      slug: curso.slug,
+      id: String(curso.id),  // Convertimos a string para params
       data: {
         title: curso.title,
         author: "Autor desconocido",
         img: curso.coverImage?.url ?? "placeholder.webp",
         readtime: 5,
         description: curso.descripcionCurso ?? "Sin descripción",
-        buy: curso.precio ?? 0, // este "buy" sería el precio estático en el momento del build
-      },
+        buy: curso.precio ?? 0
+      }
     };
 
     return {
-      params: { id: curso.slug },
-      props: { book },
+      params: { id: String(curso.id) },  // ← /libro/14488
+      props: { book }
     };
   });
 }
 
 const { book } = Astro.props as { book: Book };
-const { data, slug } = book;
+const { data, id } = book;
 const { title, author, img, readtime, description, buy } = data;
 
 export const prerender = true;
@@ -77,13 +80,14 @@ export const prerender = true;
       <a href="/" class="hover:underline opacity-70">← Volver atrás</a>
 
       <img
-        transition:name={`img-${slug}`}
+        transition:name={`img-${id}`}
         class="rounded w-72 h-auto"
         src={img}
         alt={title}
       />
 
-      <BookScore server:defer id={slug}>
+      <!-- Si usas BookScore, puedes seguir pasándole el ID -->
+      <BookScore server:defer id={id}>
         <span slot="fallback" class="text-xs opacity-70">
           Cargando puntuación...
         </span>
@@ -92,16 +96,16 @@ export const prerender = true;
       {
         SHOW_BUY_BUTTON && (
           <!-- 
-            Le pasamos el `slug` al BuyButton para que 
-            él haga su propio fetch en cada request
+            Pasamos el ID al BuyButton, 
+            para que él haga el fetch a https://admin.nicolascarrillo.com/api/cursos/[id]
           -->
-          <BuyButton server:defer slug={slug} />
+          <BuyButton server:defer id={id} />
         )
       }
     </aside>
 
     <main class="max-w-3xl">
-      <h1 transition:name={`title-${slug}`} class="text-4xl font-bold mb-4">
+      <h1 transition:name={`title-${id}`} class="text-4xl font-bold mb-4">
         {title}
       </h1>
       <p class="text-sm opacity-80">Autor: {author}</p>

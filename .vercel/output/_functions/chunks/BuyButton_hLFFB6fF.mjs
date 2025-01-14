@@ -8,16 +8,20 @@ const $$Astro = createAstro();
 const $$BuyButton = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
   Astro2.self = $$BuyButton;
-  const { slug } = Astro2.props;
-  const res = await fetch(`https://admin.nicolascarrillo.com/api/cursos/${slug}`);
+  const { id } = Astro2.props;
+  const res = await fetch(`https://admin.nicolascarrillo.com/api/cursos/${id}`);
   if (!res.ok) {
     throw new Error(
-      `Error al obtener el curso con slug="${slug}": ${res.status} ${res.statusText}`
+      `Error al obtener el curso con id="${id}": ${res.status} ${res.statusText}`
     );
   }
   const data = await res.json();
   const precioActual = data.precio ?? 0;
-  return renderTemplate`${maybeRenderHead()}<a title="Comprar curso" target="_blank" rel="noopener noreferrer" class="text-balance inline-flex gap-2 items-center bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg border border-yellow-500 transition duration-200 ease-in-out hover:scale-105 justify-center text-center">
+  return renderTemplate`${maybeRenderHead()}<a title="Comprar curso" target="_blank" rel="noopener noreferrer" class="text-balance inline-flex gap-2 items-center
+         bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600
+         text-black font-bold py-2 px-4 rounded-lg
+         border border-yellow-500 transition duration-200
+         ease-in-out hover:scale-105 justify-center text-center">
 Comprar a $ ${precioActual} ${renderComponent($$result, "AmazonLogo", $$AmazonLogo, {})} </a>`;
 }, "/Users/nicolascarrillo/Desktop/astro-5-dev-books/src/components/BuyButton.astro", undefined);
 
