@@ -1,24 +1,39 @@
 ---
+// BuyButton.astro
+
 import AmazonLogo from "./AmazonLogo.astro";
 
-const SPAIN = "ES";
+// Definimos un tipo para lo que retorne el backend.
+// Ajusta los campos según tu API real.
+interface CursoDetalle {
+  precio: number;
+  [key: string]: unknown;
+}
 
-const country = Astro.request.headers.get("X-Vercel-IP-Country") ?? "ES";
+// Recibimos el slug del curso a través de Astro.props
+const { slug } = Astro.props as { slug: string };
 
-const storeCountry = country === SPAIN ? "spain" : "usa";
-const countryName = country === SPAIN ? "España" : "Estados Unidos";
+// Realizamos la llamada al backend usando el slug
+// Por ejemplo: GET https://admin.nicolascarrillo.com/api/cursos/SLUG
+// Puede variar según cómo tengas tu endpoint; ajusta el path correcto.
+const res = await fetch(`https://admin.nicolascarrillo.com/api/cursos/${slug}`);
+if (!res.ok) {
+  throw new Error(
+    `Error al obtener el curso con slug="${slug}": ${res.status} ${res.statusText}`
+  );
+}
 
-const { buy } = Astro.props;
-const url = buy[storeCountry];
+// Parseamos el JSON y extraemos el precio
+const data = (await res.json()) as CursoDetalle;
+const precioActual = data.precio ?? 0;
 ---
 
 <a
-  href={url}
-  title="Comprar libro"
+  title="Comprar curso"
   target="_blank"
   rel="noopener noreferrer"
   class="text-balance inline-flex gap-2 items-center bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg border border-yellow-500 transition duration-200 ease-in-out hover:scale-105 justify-center text-center"
 >
-  Comprar en Amazon {countryName}
+  Comprar a $ {precioActual}
   <AmazonLogo />
 </a>

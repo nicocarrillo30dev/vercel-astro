@@ -11,7 +11,6 @@ interface APIResponse {
 
 interface CoverImage {
   url: string;
-  // ...cualquier otro campo que te interese
 }
 
 export interface CursoAPI {
@@ -21,17 +20,15 @@ export interface CursoAPI {
   descripcionCurso?: string;
   precio?: number;
   coverImage?: CoverImage;
-  // ...cualquier otro campo que te interese
 }
 
-// El "Book" que el layout espera.
 export interface BookData {
   title: string;
   author: string;
   img: string;
   readtime: number;
   description: string;
-  buy: number;
+  buy: number; // <= aquí guardamos un precio "inicial" o lo que quieras
 }
 
 export interface Book {
@@ -39,35 +36,24 @@ export interface Book {
   data: BookData;
 }
 
-// OBTENCIÓN DE PATHS / PROPS
-// --------------------------
 export async function getStaticPaths() {
-  // 1) Realizamos el fetch a la API
   const res = await fetch("https://admin.nicolascarrillo.com/api/cursos");
   if (!res.ok) {
     throw new Error(`Error al obtener los cursos: ${res.statusText}`);
   }
 
-  // 2) Parseamos la data (según la forma que devuelva la API)
   const data = (await res.json()) as APIResponse;
 
-  // 3) Mapeamos cada curso del array `docs` a las rutas que Astro necesita
   return data.docs.map((curso) => {
-    // Adaptamos la forma del "curso" al "book" que usa este componente
     const book: Book = {
       slug: curso.slug,
       data: {
         title: curso.title,
-        // Como no tenemos 'author' en la API de ejemplo, ponemos un valor genérico
         author: "Autor desconocido",
-        // Con coverImage.url cubrimos el rol de 'img'
         img: curso.coverImage?.url ?? "placeholder.webp",
-        // Ejemplo de un readtime genérico
         readtime: 5,
-        // descripción
         description: curso.descripcionCurso ?? "Sin descripción",
-        // buy podría ser el precio del curso
-        buy: curso.precio ?? 0,
+        buy: curso.precio ?? 0, // este "buy" sería el precio estático en el momento del build
       },
     };
 
@@ -78,8 +64,6 @@ export async function getStaticPaths() {
   });
 }
 
-// PROPS ENTRANTES
-// ---------------
 const { book } = Astro.props as { book: Book };
 const { data, slug } = book;
 const { title, author, img, readtime, description, buy } = data;
@@ -92,7 +76,6 @@ export const prerender = true;
     <aside class="flex flex-col items-center gap-4">
       <a href="/" class="hover:underline opacity-70">← Volver atrás</a>
 
-      <!-- Imagen del curso/libro -->
       <img
         transition:name={`img-${slug}`}
         class="rounded w-72 h-auto"
@@ -100,14 +83,21 @@ export const prerender = true;
         alt={title}
       />
 
-      <!-- Componente que carga puntuación (ejemplo) -->
       <BookScore server:defer id={slug}>
-        <span slot="fallback" class="text-xs opacity-70"
-          >Cargando puntuación...</span
-        >
+        <span slot="fallback" class="text-xs opacity-70">
+          Cargando puntuación...
+        </span>
       </BookScore>
 
-      {SHOW_BUY_BUTTON && <BuyButton server:defer buy={buy} />}
+      {
+        SHOW_BUY_BUTTON && (
+          <!-- 
+            Le pasamos el `slug` al BuyButton para que 
+            él haga su propio fetch en cada request
+          -->
+          <BuyButton server:defer slug={slug} />
+        )
+      }
     </aside>
 
     <main class="max-w-3xl">
@@ -117,7 +107,6 @@ export const prerender = true;
       <p class="text-sm opacity-80">Autor: {author}</p>
       <p class="text-sm opacity-80 mb-4">Tiempo de lectura: {readtime} min</p>
 
-      <!-- Aquí podrías renderizar la descripción, o el Content si existiese -->
       <div class="prose prose-invert">
         {description}
       </div>
