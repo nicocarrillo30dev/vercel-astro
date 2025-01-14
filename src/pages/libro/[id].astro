@@ -1,58 +1,88 @@
 ---
-import { getCollection, render } from "astro:content";
-import { SHOW_BUY_BUTTON } from "astro:env/server";
-import Layout from "../../layouts/Layout.astro";
-import AmazonLogo from "../../components/AmazonLogo.astro";
-import BookScore from "../../components/BookScore.astro";
-import BuyButton from "../../components/BuyButton.astro";
+import type { Curso, APICursos } from "../../utils/curso"; // <-- tu ruta real
 
-//hi
+// Ejemplo de tipo para el array que retorna getStaticPaths
+interface StaticPath {
+  params: { id: string };
+  props: { curso: Curso };
+}
 
-export async function getStaticPaths() {
-  const books = await getCollection("books");
+// getStaticPaths: genera las rutas estáticas
+export async function getStaticPaths(): Promise<StaticPath[]> {
+  const res = await fetch("https://admin.nicolascarrillo.com/api/cursos");
+  const data = (await res.json()) as APICursos;
 
-  return books.map((book) => ({
-    params: { id: book.slug },
-    props: { book },
+  // data.docs es un array de Curso[]
+  return data.docs.map((curso) => ({
+    params: { id: curso.slug },
+    props: { curso },
   }));
 }
 
-const { book } = Astro.props;
-const { data, slug } = book;
-const { title, author, img, readtime, description, buy } = data;
+// Definimos los tipos de los parámetros y retorno de getStaticProps
+interface StaticPropsParams {
+  params: { id: string };
+  props: { curso: Curso };
+}
 
-const { Content } = await render(book);
+export async function getStaticProps({
+  params,
+  props,
+}: StaticPropsParams): Promise<{ props: { curso: Curso } }> {
+  // Si necesitas hacer otra llamada fetch, hazla aquí.
+  // Si no, solo retornas lo que ya obtuviste en getStaticPaths:
+  return {
+    props: {
+      curso: props.curso,
+    },
+  };
+}
 
-export const prerender = true;
+// Obtenemos las props tipadas
+const { curso } = Astro.props as { curso: Curso };
+
+// Desestructuramos
+const { title, coverImage, imagenesAdicionales, descripcionCurso } = curso;
 ---
 
-<Layout title={`${title} - Dev Books`}>
-  <div class="flex gap-12">
-    <aside class="flex flex-col items-center gap-4">
-      <a href="/" class="hover:underline opacity-70">← Volver atrás</a>
+<!----------------------------------------------->
+<template>
+  <h1>{title}</h1>
+
+  <!-- Ejemplo de imagen de portada -->
+  {
+    coverImage && (
       <img
-        transition:name={`img-${slug}`}
-        class="rounded w-72 h-auto"
-        src={`/${img}`}
-        alt={title}
+        src={coverImage.url}
+        alt={coverImage.filename}
+        style="max-width: 200px;"
       />
+    )
+  }
 
-      <BookScore server:defer id={slug}>
-        <span slot="fallback" class="text-xs opacity-70"
-          >Cargando puntuación...</span
-        >
-      </BookScore>
+  <!-- Ejemplo de descripción -->
+  {descripcionCurso && <p>{descripcionCurso}</p>}
 
-      {SHOW_BUY_BUTTON && <BuyButton server:defer buy={buy} />}
-    </aside>
-
-    <main class="max-w-3xl">
-      <h1 transition:name={`title-${slug}`} class="text-4xl font-bold mb-4">
-        {title}
-      </h1>
-      <div class="prose prose-invert">
-        <Content />
-      </div>
-    </main>
-  </div>
-</Layout>
+  <!-- Ejemplo de imágenes adicionales -->
+  {
+    imagenesAdicionales && imagenesAdicionales.length > 0 && (
+      <section>
+        {imagenesAdicionales.map((item) => {
+          // TypeScript ya sabrá que item es de tipo ImagenAdicional
+          const { id, imagen } = item;
+          return (
+            // Nota: en Astro HTML nativo, 'key' no existe como en React,
+            //       puedes usar un contenedor o data-attribute.
+            <div data-key={id}>
+              <img
+                src={imagen.url}
+                alt={imagen.filename}
+                style="max-width: 150px;"
+              />
+            </div>
+          );
+        })}
+      </section>
+    )
+  }
+</template>
